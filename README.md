@@ -1,2 +1,2 @@
 # gress
-express like go webapp framework
+express like go lightweight framework

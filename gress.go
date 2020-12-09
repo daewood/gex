@@ -21,8 +21,8 @@ type route struct {
 
 // Gress ...
 type Gress struct {
-	routes  []*route
-	filters []http.HandlerFunc
+	routes []*route
+	mws    []http.HandlerFunc
 }
 
 // New ...
@@ -121,7 +121,7 @@ func (m *Gress) addRoute(method string, pattern string, handler http.HandlerFunc
 
 // Use middleware adds the middleware filter.
 func (m *Gress) Use(filter http.HandlerFunc) {
-	m.filters = append(m.filters, filter)
+	m.mws = append(m.mws, filter)
 }
 
 // UseParam adds the middleware if the REST URL parameter exists.
@@ -180,8 +180,8 @@ func (m *Gress) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			//r.URL.RawQuery = url.Values(values).Encode()
 		}
 
-		//execute middleware filters
-		for _, filter := range m.filters {
+		//execute middleware mws
+		for _, filter := range m.mws {
 			filter(w, r)
 			if w.started {
 				return

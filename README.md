@@ -51,15 +51,15 @@ redirects, etc.
 
 You can, for example, filter all request to enforce some type of security:
 
-    var MWUser = func(w http.ResponseWriter, r *http.Request) {
+    var mwUser = func(w http.ResponseWriter, r *http.Request) {
     	if r.URL.User == nil || r.URL.User.Username() != "admin" {
     		http.Error(w, "", http.StatusUnauthorized)
     	}
     }
 
-    r.Use(MWUser)
+    r.Use(mwUser)
 
-You can also apply filters only when certain REST URL Parameters exist:
+You can also apply mw only when certain REST URL Parameters exist:
 
     r.Get("/:id", handler)
     r.UseParam("id", func(rw http.ResponseWriter, r *http.Request) {

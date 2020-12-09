@@ -10,26 +10,29 @@ import (
 	"testing"
 )
 
-var HandlerOk = func(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "hello world")
-	w.WriteHeader(http.StatusOK)
-}
-
-var HandlerErr = func(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "", http.StatusBadRequest)
-}
-
-var FilterUser = func(w http.ResponseWriter, r *http.Request) {
-	if r.URL.User == nil || r.URL.User.Username() != "admin" {
-		http.Error(w, "", http.StatusUnauthorized)
+var (
+	handlerOK = func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "hello world")
+		w.WriteHeader(http.StatusOK)
 	}
-}
 
-var filterID = func(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get(":id")
-	if id == "admin" {
-		http.Error(w, "", http.StatusUnauthorized)
+	mwUser = func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.User == nil || r.URL.User.Username() != "admin" {
+			http.Error(w, "", http.StatusUnauthorized)
+		}
 	}
+
+	mwID = func(w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get(":id")
+		if id == "admin" {
+			http.Error(w, "", http.StatusUnauthorized)
+		}
+	}
+)
+
+func TestListen(t *testing.T) {
+	app := New()
+	go app.Listen(":8080")
 }
 
 func TestGressOk(t *testing.T) {
@@ -38,7 +41,7 @@ func TestGressOk(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	handler := new(Gress)
-	handler.Get("/person/:last/:first", HandlerOk)
+	handler.Get("/person/:last/:first", handlerOK)
 	handler.ServeHTTP(w, r)
 
 	lastNameParam := r.URL.Query().Get(":last")
@@ -96,8 +99,8 @@ func TestUse(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	handler := new(Gress)
-	handler.Get("/", HandlerOk)
-	handler.Use(FilterUser)
+	handler.Get("/", handlerOK)
+	handler.Use(mwUser)
 	handler.ServeHTTP(w, r)
 
 	if w.Code != http.StatusUnauthorized {
@@ -122,9 +125,9 @@ func TestUseParam(t *testing.T) {
 
 	// first test that the param filter does not trigger
 	handler := new(Gress)
-	handler.Get("/", HandlerOk)
-	handler.Get("/:id", HandlerOk)
-	handler.UseParam("id", filterID)
+	handler.Get("/", handlerOK)
+	handler.Get("/:id", handlerOK)
+	handler.UseParam("id", mwID)
 	handler.ServeHTTP(w, r)
 
 	if w.Code != http.StatusOK {
@@ -146,7 +149,7 @@ func TestUseParam(t *testing.T) {
 // the Gress using the default settings.
 func Benchmark_GressdHandler(b *testing.B) {
 	handler := new(Gress)
-	handler.Get("/", HandlerOk)
+	handler.Get("/", handlerOK)
 
 	for i := 0; i < b.N; i++ {
 		r, _ := http.NewRequest("GET", "/", nil)
@@ -161,7 +164,7 @@ func Benchmark_GressdHandler(b *testing.B) {
 func Benchmark_GressdHandlerParams(b *testing.B) {
 
 	app := new(Gress)
-	app.Get("/:user", HandlerOk)
+	app.Get("/:user", handlerOK)
 
 	for i := 0; i < b.N; i++ {
 		r, _ := http.NewRequest("GET", "/admin", nil)
@@ -179,7 +182,7 @@ func Benchmark_ServeMux(b *testing.B) {
 	r, _ := http.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", HandlerOk)
+	mux.HandleFunc("/", handlerOK)
 
 	for i := 0; i < b.N; i++ {
 		mux.ServeHTTP(w, r)

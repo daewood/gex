@@ -1,5 +1,5 @@
 # Gress
-express like go lightweight web app framework
+extend http.ServeMux to support parameterized routes and filters
 
 ## Getting Started
 
@@ -7,38 +7,25 @@ express like go lightweight web app framework
 
     import (
         "fmt"
-        "github.com/daewood/gress"
+        "github.com/daewood/gex"
         "net/http"
     )
 
     func Whoami(w http.ResponseWriter, r *http.Request) {
         params := r.URL.Query()
-        lastName := params.Get(":last")
-        firstName := params.Get(":first")
+        lastName := r.URL.Query().Get(":last")
+        firstName := r.URL.Query().Get(":first")
         fmt.Fprintf(w, "you are %s %s", firstName, lastName)
     }
 
     func main() {
-        app := gress.New()
-        app.Get("/:last/:first", Whoami)
+        app := gex.New()
+        app.HandleFunc("/:last/:first", Whoami)
 
         app.Listen(":8080")
     }
 
-### Route Examples
-You can create routes for all http methods:
-
-    app.Get("/:param", handler)
-    app.Put("/:param", handler)
-    app.Post("/:param", handler)
-    app.Patch("/:param", handler)
-    app.Delete("/:param", handler)
-
-You can specify custom regular expressions for routes:
-
-    app.Get("/files/:param(.+)", handler)
-
-You can also create routes for static files:
+### Static Examples
 
     pwd, _ := os.Getwd()
     app.Static("/static", pwd)
@@ -57,11 +44,5 @@ You can, for example, filter all request to enforce some type of security:
     	}
     }
 
-    r.Use(mwUser)
-
-You can also apply mw only when certain REST URL Parameters exist:
-
-    r.Get("/:id", handler)
-    r.UseParam("id", func(rw http.ResponseWriter, r *http.Request) {
-		...
-	})
+    app.FilterFunc("/", mwUser)
+    app.Handle("/:id", handler)

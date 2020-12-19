@@ -25,7 +25,8 @@ extend http.ServeMux to support parameterized routes and filters
         app.Listen(":8080")
     }
 
-### Work with standard http
+### As a mux
+
     package main
 
     import (
@@ -38,14 +39,29 @@ extend http.ServeMux to support parameterized routes and filters
         mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
             fmt.Fprintf(w, "hello world")
         })
-
-        http.ListenAndServe(":8080", mux)
+        http.Handle("/", mux)
+        http.ListenAndServe(":8080", nil)
     }
 
 ### Static Examples
 
-    pwd, _ := os.Getwd()
-    app.Static("/static", pwd)
+    package main
+
+    import (
+        "fmt"
+        "github.com/daewood/gex"
+        "net/http"
+    )
+    func main() {
+        app := gex.New()
+        api.Filter("/", handlerLog)           //a http.Handler, implement by yourself
+        api.FilterFunc("/api/", validatFunc)  //a func(http.ResponseWriter, *http.Request), implement by yourself
+        api.Handle("/api/", handlerApi)       //a http.Handler, implement by yourself
+        
+        pwd, _ := os.Getwd()
+        app.Static("/static", pwd)
+        app.Listen(":8080")
+    }
 
 this will serve any files in `/static`, including files in subdirectories. For example `/static/logo.gif` or `/static/style/main.css`.
 
@@ -55,11 +71,25 @@ redirects, etc.
 
 You can, for example, filter all request to enforce some type of security:
 
-    var mwUser = func(w http.ResponseWriter, r *http.Request) {
-    	if r.URL.User == nil || r.URL.User.Username() != "admin" {
-    		http.Error(w, "", http.StatusUnauthorized)
-    	}
-    }
+    package main
 
-    app.FilterFunc("/", mwUser)
-    app.Handle("/:id", handler)
+    import (
+        "fmt"
+        "github.com/daewood/gex"
+        "net/http"
+    )
+    func main() {
+        app := gex.New()
+        var mwUser = func(w http.ResponseWriter, r *http.Request) {
+            if r.URL.User == nil || r.URL.User.Username() != "admin" {
+                http.Error(w, "", http.StatusUnauthorized)
+            }
+        }
+
+        app.FilterFunc("/", mwUser)
+        app.Filter("/hello", filterHandler) // filterHandler is a http.Handler, implement by yourself
+        mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+            fmt.Fprintf(w, "hello world")
+        })
+        app.Listen(":8080")
+    }

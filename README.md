@@ -54,9 +54,9 @@ extend http.ServeMux to support parameterized routes and filters
     )
     func main() {
         app := gex.New()
-        api.Filter("/", handlerLog)           //a http.Handler, implement by yourself
-        api.FilterFunc("/api/", validatFunc)  //a func(http.ResponseWriter, *http.Request), implement by yourself
-        api.Handle("/api/", handlerApi)       //a http.Handler, implement by yourself
+        app.Filter("/", handlerLog)           //a http.Handler, implement by yourself
+        app.FilterFunc("/api/", validatFunc)  //a func(http.ResponseWriter, *http.Request), implement by yourself
+        app.Handle("/api/", handlerApi)       //a http.Handler, implement by yourself
         
         pwd, _ := os.Getwd()
         app.Static("/static", pwd)
@@ -86,7 +86,8 @@ You can, for example, filter all request to enforce some type of security:
             }
         }
 
-        app.FilterFunc("/", mwUser)
+        app.Filter("/", handlerLog)           //a http.Handler, implement by yourself
+        app.FilterFunc("/hello", mwUser)
         app.Filter("/hello", filterHandler) // filterHandler is a http.Handler, implement by yourself
         mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
             fmt.Fprintf(w, "hello world")

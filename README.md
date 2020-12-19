@@ -13,8 +13,8 @@ extend http.ServeMux to support parameterized routes and filters
 
     func Whoami(w http.ResponseWriter, r *http.Request) {
         params := r.URL.Query()
-        lastName := r.URL.Query().Get(":last")
-        firstName := r.URL.Query().Get(":first")
+        lastName := params.Get("last")
+        firstName := params.Get("first")
         fmt.Fprintf(w, "you are %s %s", firstName, lastName)
     }
 

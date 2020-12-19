@@ -25,6 +25,23 @@ extend http.ServeMux to support parameterized routes and filters
         app.Listen(":8080")
     }
 
+### Work with standard http
+    package main
+
+    import (
+        "fmt"
+        "github.com/daewood/gex"
+        "net/http"
+    )
+    func main() {
+        mux := gex.New()
+        mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+            fmt.Fprintf(w, "hello world")
+        })
+
+        http.ListenAndServe(":8080", mux)
+    }
+
 ### Static Examples
 
     pwd, _ := os.Getwd()
@@ -33,7 +50,7 @@ extend http.ServeMux to support parameterized routes and filters
 this will serve any files in `/static`, including files in subdirectories. For example `/static/logo.gif` or `/static/style/main.css`.
 
 ## Middleware
-You can apply middleware to gress, which is useful for enforcing security,
+You can apply middleware to gex, which is useful for enforcing security,
 redirects, etc.
 
 You can, for example, filter all request to enforce some type of security:

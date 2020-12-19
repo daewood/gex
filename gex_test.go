@@ -17,12 +17,15 @@ var handlerOk = func(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestListen(t *testing.T) {
-	app := New()
-	go app.Listen(":8080")
+	mux := New()
+	mux.HandleFunc("/api/:id", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.URL.Query().Get("id"))
+		io.WriteString(w, r.URL.Path)
+	})
+	go mux.Listen(":8080")
 }
 
-func TestGexOk(t *testing.T) {
-
+func TestMux(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/person/lastname/firstname?learn=golang", nil)
 	w := httptest.NewRecorder()
 
@@ -78,17 +81,18 @@ func TestFilter(t *testing.T) {
 	mux := New()
 
 	mux.FilterFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "middleware route\n")
+		fmt.Fprintf(w, "route ")
 	})
 	mux.FilterFunc("/ok", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "middleware ok\n")
-		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "ok ")
 	})
 	mux.HandleFunc("/ok", handlerOk)
 
 	r, _ := http.NewRequest("GET", "/ok", nil)
 	mux.ServeHTTP(w, r)
-	fmt.Println(w.Body.String())
+	if w.Body.String() != "route ok hello world" {
+		t.Errorf("filter failed")
+	}
 }
 
 func TestValidFilter(t *testing.T) {
@@ -117,36 +121,34 @@ func TestValidFilter(t *testing.T) {
 }
 
 func TestFilterWithRegex(t *testing.T) {
-	w := httptest.NewRecorder()
 	mux := New()
 	mux.FilterFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("middleware route\n")
+		fmt.Fprintf(w, "route ")
 	})
 	mux.FilterFunc("/:id", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("mw:" + r.URL.Query().Get("id"))
-		fmt.Fprintf(w, "middleware id\n")
+		fmt.Fprintf(w, "%s ", r.URL.Query().Get("id"))
 	})
-	mux.HandleFunc("/:id", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.URL.Query().Get("id"))
-		io.WriteString(w, r.URL.Path)
-	})
-	{
-		r, _ := http.NewRequest("GET", "/myid", nil)
-		mux.ServeHTTP(w, r)
-		fmt.Println(w.Body.String())
+	mux.HandleFunc("/:id", handlerOk)
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/myid", nil)
+	mux.ServeHTTP(w, r)
+	if w.Body.String() != "route myid hello world" {
+		t.Errorf("validfilter failed")
 	}
 }
 
-func TestGexMux(t *testing.T) {
-	w := httptest.NewRecorder()
+func TestSubRouter(t *testing.T) { //TODO
 	mux := New()
-	mux.HandleFunc("/api/:id", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.URL.Query().Get("id"))
-		io.WriteString(w, r.URL.Path)
+	mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "hello world")
 	})
-	r, _ := http.NewRequest("GET", "/api/myid", nil)
+	http.Handle("/api/", mux)
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/api/hello", nil)
 	mux.ServeHTTP(w, r)
-	fmt.Println(w.Body.String())
+	if w.Body.String() != "hello world" {
+		t.Errorf("subrouter failed")
+	}
 }
 
 func BenchmarkGexMux(b *testing.B) {
